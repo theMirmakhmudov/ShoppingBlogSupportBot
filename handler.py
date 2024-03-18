@@ -20,10 +20,53 @@ class Form(StatesGroup):
     finish = State()
 
 
+class Idea(StatesGroup):
+    fullname = State()
+    phone = State()
+    idea = State()
+    finish = State()
+
+
 async def start(message: types.Message):
     await message.answer(
         f"<b>Assalomu Alaykum. Hurmatli {message.from_user.full_name}\nShoppingBlog support botiga xush kelibsiz.!</b>",
         reply_markup=keyboard)
+
+
+async def idea(message: types.Message, state: FSMContext):
+    await state.set_state(Idea.fullname)
+    await message.answer("<b>Biz sizni taniy olishimiz uchun to'liq ism familiyangizni kiriting: </b>")
+
+
+async def fullname(message: types.Message, state: FSMContext):
+    await state.update_data(fullname_idea=message.text)
+    await state.set_state(Idea.phone)
+    await message.answer("<b>Contact yuboring</b>", reply_markup=contact)
+
+
+async def phone(message: types.Message, state: FSMContext):
+    await state.update_data(phone_idea=message.contact.phone_number)
+    await state.set_state(Idea.idea)
+    await message.answer("<b>Savol yoki Taklifingizni yozing 📝</b>")
+
+
+async def ideas(message: types.Message, state: FSMContext, bot: Bot):
+    await state.update_data(idea=message.text)
+    await state.set_state(Idea.finish)
+    await message.answer("Savol va Takliflaringiz adminga yuborildi ✅")
+    idea_data = await state.get_data()
+    await state.clear()
+    fullname_idea = idea_data.get("fullname_idea", "Unknown")
+    phone_idea = idea_data.get("phone_idea", "Unknown")
+    ideas = idea_data.get("idea", "Unknown")
+    await message.answer("Yuborildi ✅")
+    msg = f"""<b>
+Savol va Takliflar 💡
+🧔🏻‍♂️ To'liq ismi: {fullname_idea}
+📱 Telefon raqami: {phone_idea}
+💡 Savol va Taklifi: {ideas}    
+</b>"""
+    await bot.send_message(Admin, msg)
 
 
 async def feedback(message: types.Message, state: FSMContext):
@@ -66,6 +109,14 @@ async def finish(message: types.Message, state: FSMContext, bot: Bot):
     product_name = data.get("product_name", "Unknown")
     product_price = data.get("product_price", "Unknown")
     feedbacks = data.get("feedback", "Unknown")
-    msg = f"<b>F.I.SH: {message.from_user.mention_html()}\nTelefon raqami: {phone}\nMahsulot turi: {product_type}\nMahsulot nomi: {product_name}\nMahsulot narxi: {product_price}\nMahsulot muammosi: {feedbacks}</b>"
+    msg = f"""<b>
+Mahsulotdagi muammo 🔧
+🧔🏻‍♂️ F.I.SH: {message.from_user.full_name}
+📲 Telefon raqami: {phone}
+🧸 Mahsulot turi: {product_type}
+🛍 Mahsulot nomi: {product_name}
+💴 Mahsulot narxi: {product_price}
+🔧 Mahsulotdagi muammo: {feedbacks}
+   </b>"""
 
     await bot.send_message(Admin, msg)
